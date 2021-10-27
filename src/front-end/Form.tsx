@@ -30,9 +30,10 @@ const FormContainer = styled.div`
 display: flex;
 flex-direction: column;
 background-color: rgb(18,60,105);
+left: 0;
 width: 100%;
-height:400px;
-top: 75px;
+height:80%;
+top: 10%;
 position: absolute;
 `
 const FieldSet = styled.fieldset`
@@ -101,14 +102,13 @@ text-decoration: none;
 -webkit-backface-visibility: hidden;
 transition: all .3s cubic-bezier(.25,.8,.25,1);
 `
-const defaultFormData = {name:'', email:'', phone:'', areacode:'', comment:''}
+/* const defaultFormData = {name:'', email:'', phone:'', areacode:'', comment:''} */
 export default () => {
     let errors : string[] = []
     const [succesSubmit, setSuccessSubmit] = useRecoilState(successSubmitAtom);
     const { register, handleSubmit} = useForm();
     const [showErrors, setShowErrors] = useState<boolean>(false);
-    /* const [errors, setErrors] = useState<string[]>(['fisk']) */
-    const [formData, setFormData] =useState<FormData>(defaultFormData);
+/*     const [formData, setFormData] =useState<FormData>(defaultFormData); */
 
     const sendToValidation = (data : FormData) : Promise<string[]> => {
         const requestOptions = {
@@ -121,23 +121,34 @@ export default () => {
             .then(errors => errors);
         return errors2;
     }
+    const sendToNettBureau = (data: FormData) => {
+        const requestOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'multipart/form-data' },
+            body: JSON.stringify(data)
+        };
+        fetch('https://case.nettbureau.no/submit/', requestOptions)
+        .then(response => console.log(response.json()))
+    }
     const formValidation = async (data : FormData) => {
 
         const nameValid : string = Boolean(data.name.trim()) ? 'ok':'name' ;
         const epostValid : string = emailRegex.test(data.email) ? 'ok':'email';
         const phoneValid : string = validator.isMobilePhone(data.phone) ? 'ok':'phone';
-        const areacodeValid : string =  data.areacode.length == 4 ? 'ok':'zip';
+        const areacodeValid : string =  data.areacode.length === 4 ? 'ok':'zip';
         const checksArray : string[] = [nameValid, epostValid, phoneValid, areacodeValid];
         const errorsArray : string[] = checksArray.filter(x => x!== 'ok')
         const allGood = errorsArray.length === 0;
-
         if(!allGood){
-            errors =errorsArray;
+            errors = errorsArray;
             setShowErrors(true);
             return
         }
         errors = await sendToValidation(data)
         const allGoodbackend : boolean = errors.length === 0;
+        if(allGood && allGoodbackend){
+            sendToNettBureau(data);
+        }
         setSuccessSubmit(allGood && allGoodbackend);
         setShowErrors(true);
     };
@@ -147,7 +158,7 @@ export default () => {
         setShowErrors(false);
     };
     const Submit = (data : any) => {
-        setFormData(data);
+       /*  setFormData(data); */
         formValidation(data);
     };
     return(
