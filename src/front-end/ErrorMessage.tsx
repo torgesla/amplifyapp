@@ -1,45 +1,39 @@
-import { setServers } from "dns";
-import { useEffect} from "react";
 import styled from 'styled-components'
 
 interface errorProps{
-    errors : string[],
-    showErrors : boolean,
-    doClose : () => void
+    in_errors : string[],
+    showErrors : boolean
 }
-const fields_dict : {[id :string] : string[]} = {
-    'name' : ['Navn', 'Navn Navnesen'],
-    'email' : ['E-post', 'navn@bedrift.landkode'],
-    'phone' :['Telefonnummer', '(+XX)XXX XX XXX eks. 954 32 127'],
-    'zip' :  ['Postnummer', 'XXXX']
+const fields_dict : {[id :string] : string} = {
+    'name' : 'Navn',
+    'email' : 'E-post',
+    'phone' :'Telefonnummer',
+    'zip' :  'Postnummer'
 }
     
-export default ({errors, showErrors, doClose} : errorProps) => {
-    useEffect(() => {
-    }, [errors])
-    useEffect(() => {
-        document.addEventListener("mousedown", () => {
-            doClose()
-        })
-    })
+export default ({in_errors, showErrors} : errorProps) => {
     const StyledModal = styled.div`
-        display: ${showErrors ? 'block' : 'none'};
         position: fixed;
+        display: ${showErrors ? 'block' : 'none'};
+        background-color: rgb(18,60,105);
+        left: 67vw;
+        top: 15vh;
+        height: 50vh;
+        width: 20vw;
+        color: white;
         border-radius: 3px;
         margin: 0.5rem 1rem;
-        width: 11rem;
-        background: white;
-        color: black;
-        border: 2px solid white;
     `
+    const ErrorsList = styled.ul`
+        list-style-type:none
+    `
+    const listItems = in_errors.map((error) =>
+        <li>{fields_dict[error]}</li>
+    );
     return( 
         <StyledModal>
-            <div>Du har feil format i felt{errors.length===1 ? 'et' : 'ene'}:</div>
-            <ul>
-                {errors.map((error) =>{
-                    <li>{fields_dict[error][0]}</li>
-                })}
-            </ul>
+            <div>Du har feil format i felt{in_errors.length===1 ? 'et' : 'ene'}:</div>
+            <ErrorsList>{listItems}</ErrorsList>
         </StyledModal>
     )
 };

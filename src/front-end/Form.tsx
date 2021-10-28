@@ -15,31 +15,30 @@ type FormData = {
     comment: string
 }
 const Header = styled.h1`
-position: relative;
-left: 10%;
-font-family: Muli,sans-serif;
-transition: all .2s ease-in-out;
-color: rgb(18,60,105);
-display: inline;
-font-weight: 600;
-font-size: 58px;
-line-height: 1.2;
-padding: 5px 5px 5px 0;
+    position: relative;
+    left: 10vw;
+    font-family: Muli,sans-serif;
+    transition: all .2s ease-in-out;
+    color: rgb(18,60,105);
+    display: inline;
+    font-weight: 600;
+    font-size: 58px;
+    line-height: 1.2;
+    padding: 5px 5px 5px 0;
 `
 const FormContainer = styled.div`
-display: flex;
-flex-direction: column;
-background-color: rgb(18,60,105);
-left: 0;
-width: 100%;
-height:80%;
-top: 10%;
-position: absolute;
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(18,60,105);
+    left: 0;
+    width: 100vw;
+    height:76vh;
+    top: 12vh;
+    position: absolute;
 `
 const FieldSet = styled.fieldset`
     border-width: 0;
-    border-color: red;
-    height: 100%; 
+    height: 55vh; 
 `
 const FieldsContainer = styled.div`
 display: flex;
@@ -50,19 +49,19 @@ align-items: center;
 text-align: center;
 `
 const LabelsContainer = styled.div`
-display: flex;
-height: 100%;
-flex-direction: column;
-justify-content: flex-start;
-align-items: center;
-text-align: center;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: center;
 `
 const InputsContainer = styled.div`
-display: flex;
-padding: 8px;
-height: 100%;
-flex-direction: column;
-justify-content: space-around;
+    display: flex;
+    padding: 8px;
+    height: 100%;
+    flex-direction: column;
+    justify-content: space-around;
 `
 const Label = styled.label`
 font-size: 20px;
@@ -85,43 +84,45 @@ margin: auto 10px;
 font-family: muli, sans serif;;
 `
 const SubmitButton = styled.button`
-text-align: center;
-font-family: Muli,sans-serif;
-margin: 0;
-background-color: #ff5e22;
-display: inline-block;
-box-sizing: border-box;
-border-radius: 10em;
-color: #fff;
-font-size: 18px;
-font-weight: 700;
-padding: 14px 22px;
-margin-top: 10px;
-position: relative;
-text-decoration: none;
--webkit-backface-visibility: hidden;
-transition: all .3s cubic-bezier(.25,.8,.25,1);
+    position: absolute;
+    left: 50vw;
+    top: 60vh;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-family: Muli,sans-serif;
+    margin: 0;
+    background-color: #ff5e22;
+    display: inline-block;
+    box-sizing: border-box;
+    border-radius: 10em;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 14px 22px;
+    margin-top: 10px;
+    text-decoration: none;
+    -webkit-backface-visibility: hidden;
+    transition: all .3s cubic-bezier(.25,.8,.25,1);
 `
-/* const defaultFormData = {name:'', email:'', phone:'', areacode:'', comment:''} */
+let errors : string[] = [];
 export default () => {
-    let errors : string[] = []
     const [succesSubmit, setSuccessSubmit] = useRecoilState(successSubmitAtom);
     const { register, handleSubmit} = useForm();
     const [showErrors, setShowErrors] = useState<boolean>(false);
-/*     const [formData, setFormData] =useState<FormData>(defaultFormData); */
+    const [in_errors, setErrors] = useState<string[]>([])
 
     const sendToValidation = (data : FormData) : Promise<string[]> => {
         const requestOptions = {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         };
-        const errors2 : Promise<string[]> = fetch('http://localhost:5000/api', requestOptions)
+        const errors2 : Promise<string[]> = fetch('http://localhost:8080/api', requestOptions)
             .then(response => response.json())
             .then(errors => errors);
         return errors2;
     }
-    const sendToNettBureau = (data: FormData) => {
+/*     const sendToNettBureau = (data: FormData) => {
         const requestOptions = {
             method: 'POST',
             headers: { 'Content-Type': 'multipart/form-data' },
@@ -129,9 +130,8 @@ export default () => {
         };
         fetch('https://case.nettbureau.no/submit/', requestOptions)
         .then(response => console.log(response.json()))
-    }
+    } */
     const formValidation = async (data : FormData) => {
-
         const nameValid : string = Boolean(data.name.trim()) ? 'ok':'name' ;
         const epostValid : string = emailRegex.test(data.email) ? 'ok':'email';
         const phoneValid : string = validator.isMobilePhone(data.phone) ? 'ok':'phone';
@@ -141,24 +141,31 @@ export default () => {
         const allGood = errorsArray.length === 0;
         if(!allGood){
             errors = errorsArray;
+            setErrors(errors);
             setShowErrors(true);
             return
         }
-        errors = await sendToValidation(data)
-        const allGoodbackend : boolean = errors.length === 0;
-        if(allGood && allGoodbackend){
-            sendToNettBureau(data);
+        let allGoodbackend = true
+        try {
+            errors = await sendToValidation(data)
+            allGoodbackend= errors.length === 0;
+            if(allGood && allGoodbackend){
+                /* sendToNettBureau(data); */
+                return
+            }
+            setErrors(errors)
+        }catch{
+            console.log("Server didn't respond")
         }
-        setSuccessSubmit(allGood && allGoodbackend);
-        setShowErrors(true);
+        setSuccessSubmit(allGood && (allGoodbackend || true));
+        setShowErrors(!succesSubmit);
     };
     const clearSubmit = () => {
         errors = [];
         setSuccessSubmit(false);
-        setShowErrors(false);
+        setShowErrors(!showErrors);
     };
     const Submit = (data : any) => {
-       /*  setFormData(data); */
         formValidation(data);
     };
     return(
@@ -167,7 +174,6 @@ export default () => {
         <FormContainer>
             <form onSubmit={handleSubmit(Submit)}>
                 <FieldSet>
-                    <legend style={{color:"white", textAlign:"center"}}>Informasjonsskjema</legend>
                     <FieldsContainer>
                         <LabelsContainer>
                             <Label htmlFor={'name'}>Navn</Label>
@@ -183,12 +189,12 @@ export default () => {
                             <InputField {...register("areacode",    {required: true})}  className="required" name="areacode"    placeholder="0000" />
                             <Commentbox {...register('comment')}                                             name="comment"/>
                         </InputsContainer>
+                        {showErrors ? (<ErrorMessage in_errors={in_errors} showErrors={showErrors}/>) : null}
                     </FieldsContainer>
                     <SubmitButton type="submit">Send inn!</SubmitButton>
                 </FieldSet>
             </form>
         </FormContainer>
-        {showErrors ? (<ErrorMessage errors={errors} showErrors={showErrors} doClose={() => clearSubmit()}/>) : null}
     </>
     )
 };
