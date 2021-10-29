@@ -12,7 +12,8 @@ type FormData = {
     email: string,
     phone: string,
     areacode: string,
-    comment: string
+    comment: string,
+    applicant: string
 }
 const Header = styled.h1`
     position: relative;
@@ -104,75 +105,63 @@ const SubmitButton = styled.button`
     -webkit-backface-visibility: hidden;
     transition: all .3s cubic-bezier(.25,.8,.25,1);
 `
-let errors : string[] = [];
 export default () => {
     const [succesSubmit, setSuccessSubmit] = useRecoilState(successSubmitAtom);
     const { register, handleSubmit} = useForm();
     const [showErrors, setShowErrors] = useState<boolean>(false);
-    const [in_errors, setErrors] = useState<string[]>([])
+    const [inErrors, setErrors] = useState<string[]>([])
 
-    const sendToValidation = (data : FormData) : Promise<string[]> => {
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        };
-        const errors2 : Promise<string[]> = fetch('http://localhost:8080/api', requestOptions)
-            .then(response => response.json())
-            .then(errors => errors);
-        return errors2;
-    }
-/*     const sendToNettBureau = (data: FormData) => {
-        const requestOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'multipart/form-data' },
-            body: JSON.stringify(data)
-        };
-        fetch('https://case.nettbureau.no/submit/', requestOptions)
-        .then(response => console.log(response.json()))
-    } */
-    const formValidation = async (data : FormData) => {
+    const localValidation = (data: FormData) : [boolean, string[]] => {
         const nameValid : string = Boolean(data.name.trim()) ? 'ok':'name' ;
         const epostValid : string = emailRegex.test(data.email) ? 'ok':'email';
         const phoneValid : string = validator.isMobilePhone(data.phone) ? 'ok':'phone';
         const areacodeValid : string =  data.areacode.length === 4 ? 'ok':'zip';
         const checksArray : string[] = [nameValid, epostValid, phoneValid, areacodeValid];
-        const errorsArray : string[] = checksArray.filter(x => x!== 'ok')
-        const allGood = errorsArray.length === 0;
+        const errors : string[] = checksArray.filter(x => x!== 'ok')
+        const allGood = errors.length === 0;
         if(!allGood){
-            errors = errorsArray;
             setErrors(errors);
             setShowErrors(true);
-            return
         }
-        let allGoodbackend = true
+        return [allGood, errors];
+    }
+    const serverValidation = async (data: FormData) : Promise<[boolean,string[]]> =>{
+        let allGood : boolean;
+        let errors : string[];
         try {
-            errors = await sendToValidation(data)
-            allGoodbackend= errors.length === 0;
-            if(allGood && allGoodbackend){
-                /* sendToNettBureau(data); */
-                return
-            }
-            setErrors(errors)
+            const requestOptions = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            };
+            errors = await fetch('http://localhost:8080/api', requestOptions)
+                            .then(response => response.json())
+                            .then(errors => errors);
+            allGood = errors.length === 0;
         }catch{
             console.log("Server didn't respond")
+            /* So the app will work even if server is off */
+            allGood = true;
+            errors = [];
         }
-        setSuccessSubmit(allGood && (allGoodbackend || true));
+        return [allGood, errors]
+    }
+    const formValidation = async (data : FormData) : Promise<void> => {
+        /* Does both client and server-side validation of form data */
+        const [allGood, frontendErrors] = localValidation(data);
+        setErrors(frontendErrors);
+        const [allGoodBackend,backendErrors] = await serverValidation(data);
+        /* Find the union of errors from front and back-end */
+        const errors : string[] = Array.from(new Set([...frontendErrors, ...backendErrors]));
+        setErrors(errors);
+        setSuccessSubmit(allGoodBackend);
         setShowErrors(!succesSubmit);
-    };
-    const clearSubmit = () => {
-        errors = [];
-        setSuccessSubmit(false);
-        setShowErrors(!showErrors);
-    };
-    const Submit = (data : any) => {
-        formValidation(data);
     };
     return(
     <>  
         <Header>Spørreskjema - case Torgeir Laurvik</Header>
         <FormContainer>
-            <form onSubmit={handleSubmit(Submit)}>
+            <form onSubmit={handleSubmit(formValidation)}>
                 <FieldSet>
                     <FieldsContainer>
                         <LabelsContainer>
@@ -189,7 +178,7 @@ export default () => {
                             <InputField {...register("areacode",    {required: true})}  className="required" name="areacode"    placeholder="0000" />
                             <Commentbox {...register('comment')}                                             name="comment"/>
                         </InputsContainer>
-                        {showErrors ? (<ErrorMessage in_errors={in_errors} showErrors={showErrors}/>) : null}
+                        {showErrors ? (<ErrorMessage inErrors={inErrors} showErrors={showErrors}/>) : null}
                     </FieldsContainer>
                     <SubmitButton type="submit">Send inn!</SubmitButton>
                 </FieldSet>
