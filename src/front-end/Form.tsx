@@ -154,7 +154,7 @@ export default () => {
         /* Find the union of errors from front and back-end */
         const errors : string[] = Array.from(new Set([...frontendErrors, ...backendErrors]));
         setErrors(errors);
-        setSuccessSubmit(allGoodBackend);
+        setSuccessSubmit(allGoodBackend && allGood);
         setShowErrors(!succesSubmit);
     };
     return(
